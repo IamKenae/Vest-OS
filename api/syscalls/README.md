@@ -1,72 +1,72 @@
-# 系统调用API文档
+# System Call API Documentation
 
-## 概述
-Vest-OS系统调用提供了用户空间程序与内核交互的接口。所有系统调用都通过标准库提供的包装函数进行访问。
+## Overview
+Vest-OS system calls provide the interface for user-space programs to interact with the kernel. All system calls are accessed through wrapper functions provided by the standard library.
 
-## 目录
-- [进程管理](#进程管理)
-- [文件系统](#文件系统)
-- [内存管理](#内存管理)
-- [进程间通信](#进程间通信)
-- [网络](#网络)
-- [设备控制](#设备控制)
-- [时间管理](#时间管理)
-- [信号处理](#信号处理)
+## Table of Contents
+- [Process Management](#process-management)
+- [File System](#file-system)
+- [Memory Management](#memory-management)
+- [Inter-Process Communication](#inter-process-communication)
+- [Network](#network)
+- [Device Control](#device-control)
+- [Time Management](#time-management)
+- [Signal Handling](#signal-handling)
 
-## 进程管理
+## Process Management
 
 ### fork()
-创建子进程
+Create child process
 
 ```c
 #include <unistd.h>
 pid_t fork(void);
 ```
 
-**返回值：**
-- 成功：父进程返回子进程PID，子进程返回0
-- 失败：返回-1，设置errno
+**Return values:**
+- Success: Parent process returns child PID, child process returns 0
+- Failure: Returns -1, sets errno
 
-**示例：**
+**Example:**
 ```c
 pid_t pid = fork();
 if (pid == -1) {
     perror("fork");
     exit(EXIT_FAILURE);
 } else if (pid == 0) {
-    // 子进程代码
+    // Child process code
     printf("Child process\n");
     exit(EXIT_SUCCESS);
 } else {
-    // 父进程代码
+    // Parent process code
     printf("Parent process, child PID: %d\n", pid);
 }
 ```
 
 ### execve()
-执行新程序
+Execute new program
 
 ```c
 #include <unistd.h>
 int execve(const char *pathname, char *const argv[], char *const envp[]);
 ```
 
-**参数：**
-- `pathname`: 要执行的程序路径
-- `argv`: 参数数组，以NULL结尾
-- `envp`: 环境变量数组，以NULL结尾
+**Parameters:**
+- `pathname`: Path to the program to execute
+- `argv`: Argument array, NULL-terminated
+- `envp`: Environment variable array, NULL-terminated
 
-**示例：**
+**Example:**
 ```c
 char *args[] = {"/bin/ls", "-l", "/home", NULL};
 char *env[] = {"PATH=/bin:/usr/bin", NULL};
 
 execve("/bin/ls", args, env);
-perror("execve");  // 只有在execve失败时才执行
+perror("execve");  // Only executed if execve fails
 ```
 
 ### waitpid()
-等待子进程状态改变
+Wait for child process state change
 
 ```c
 #include <sys/types.h>
@@ -74,27 +74,27 @@ perror("execve");  // 只有在execve失败时才执行
 pid_t waitpid(pid_t pid, int *status, int options);
 ```
 
-**参数：**
-- `pid`: 要等待的子进程PID
-  - `-1`: 等待任意子进程
-  - `0`: 等待与调用者同进程组的任意子进程
-  - `>0`: 等待指定PID的子进程
-- `status`: 存储子进程状态信息
-- `options`: 选项标志
-  - `WNOHANG`: 非阻塞模式
-  - `WUNTRACED`: 也返回已停止的子进程
-  - `WCONTINUED`: 也返回继续执行的子进程
+**Parameters:**
+- `pid`: Child process PID to wait for
+  - `-1`: Wait for any child process
+  - `0`: Wait for any child process in same process group as caller
+  - `>0`: Wait for child process with specified PID
+- `status`: Store child process status information
+- `options`: Option flags
+  - `WNOHANG`: Non-blocking mode
+  - `WUNTRACED`: Also return stopped child processes
+  - `WCONTINUED`: Also return continued child processes
 
-**示例：**
+**Example:**
 ```c
 int status;
 pid_t child_pid = fork();
 
 if (child_pid == 0) {
-    // 子进程
+    // Child process
     exit(42);
 } else {
-    // 父进程
+    // Parent process
     waitpid(child_pid, &status, 0);
 
     if (WIFEXITED(status)) {
@@ -104,30 +104,30 @@ if (child_pid == 0) {
 ```
 
 ### getpid()/getppid()
-获取进程ID
+Get process ID
 
 ```c
 #include <unistd.h>
-pid_t getpid(void);    // 获取当前进程ID
-pid_t getppid(void);   // 获取父进程ID
+pid_t getpid(void);    // Get current process ID
+pid_t getppid(void);   // Get parent process ID
 ```
 
 ### kill()
-发送信号给进程
+Send signal to process
 
 ```c
 #include <signal.h>
 int kill(pid_t pid, int sig);
 ```
 
-**参数：**
-- `pid`: 目标进程ID
-- `sig`: 信号编号
+**Parameters:**
+- `pid`: Target process ID
+- `sig`: Signal number
 
-## 文件系统
+## File System
 
 ### open()
-打开文件
+Open file
 
 ```c
 #include <fcntl.h>
@@ -136,19 +136,19 @@ int kill(pid_t pid, int sig);
 int open(const char *pathname, int flags, mode_t mode);
 ```
 
-**参数：**
-- `pathname`: 文件路径
-- `flags`: 打开标志
-  - `O_RDONLY`: 只读
-  - `O_WRONLY`: 只写
-  - `O_RDWR`: 读写
-  - `O_CREAT`: 如果不存在则创建
-  - `O_APPEND`: 追加模式
-  - `O_TRUNC`: 截断文件
-  - `O_NONBLOCK`: 非阻塞模式
-- `mode`: 文件权限（仅在创建时使用）
+**Parameters:**
+- `pathname`: File path
+- `flags`: Open flags
+  - `O_RDONLY`: Read-only
+  - `O_WRONLY`: Write-only
+  - `O_RDWR`: Read-write
+  - `O_CREAT`: Create if doesn't exist
+  - `O_APPEND`: Append mode
+  - `O_TRUNC`: Truncate file
+  - `O_NONBLOCK`: Non-blocking mode
+- `mode`: File permissions (used only when creating)
 
-**示例：**
+**Example:**
 ```c
 int fd = open("test.txt", O_CREAT | O_WRONLY | O_TRUNC, 0644);
 if (fd == -1) {
@@ -160,25 +160,25 @@ close(fd);
 ```
 
 ### read()
-读取文件
+Read from file
 
 ```c
 #include <unistd.h>
 ssize_t read(int fd, void *buf, size_t count);
 ```
 
-**参数：**
-- `fd`: 文件描述符
-- `buf`: 缓冲区
-- `count`: 要读取的字节数
+**Parameters:**
+- `fd`: File descriptor
+- `buf`: Buffer
+- `count`: Number of bytes to read
 
-**返回值：**
-- 成功：返回实际读取的字节数
-- 0：到达文件末尾
-- 失败：返回-1，设置errno
+**Return values:**
+- Success: Returns actual number of bytes read
+- 0: End of file reached
+- Failure: Returns -1, sets errno
 
 ### write()
-写入文件
+Write to file
 
 ```c
 #include <unistd.h>
@@ -186,7 +186,7 @@ ssize_t write(int fd, const void *buf, size_t count);
 ```
 
 ### close()
-关闭文件
+Close file
 
 ```c
 #include <unistd.h>
@@ -194,7 +194,7 @@ int close(int fd);
 ```
 
 ### stat()/lstat()/fstat()
-获取文件状态
+Get file status
 
 ```c
 #include <sys/types.h>
@@ -205,27 +205,27 @@ int lstat(const char *pathname, struct stat *statbuf);
 int fstat(int fd, struct stat *statbuf);
 ```
 
-**stat结构：**
+**stat structure:**
 ```c
 struct stat {
-    dev_t st_dev;         // 设备ID
-    ino_t st_ino;         // inode号
-    mode_t st_mode;       // 文件类型和权限
-    nlink_t st_nlink;     // 硬链接数
-    uid_t st_uid;         // 所有者用户ID
-    gid_t st_gid;         // 所有者组ID
-    dev_t st_rdev;        // 设备ID（如果是特殊文件）
-    off_t st_size;        // 文件大小（字节）
-    blksize_t st_blksize; // 文件系统块大小
-    blkcnt_t st_blocks;   // 分配的块数
-    time_t st_atime;      // 最后访问时间
-    time_t st_mtime;      // 最后修改时间
-    time_t st_ctime;      // 最后状态改变时间
+    dev_t st_dev;         // Device ID
+    ino_t st_ino;         // inode number
+    mode_t st_mode;       // File type and permissions
+    nlink_t st_nlink;     // Number of hard links
+    uid_t st_uid;         // Owner user ID
+    gid_t st_gid;         // Owner group ID
+    dev_t st_rdev;        // Device ID (if special file)
+    off_t st_size;        // File size (bytes)
+    blksize_t st_blksize; // Filesystem block size
+    blkcnt_t st_blocks;   // Number of allocated blocks
+    time_t st_atime;      // Last access time
+    time_t st_mtime;      // Last modification time
+    time_t st_ctime;      // Last status change time
 };
 ```
 
 ### mkdir()
-创建目录
+Create directory
 
 ```c
 #include <sys/stat.h>
@@ -234,7 +234,7 @@ int mkdir(const char *pathname, mode_t mode);
 ```
 
 ### rmdir()
-删除目录
+Remove directory
 
 ```c
 #include <unistd.h>
@@ -242,7 +242,7 @@ int rmdir(const char *pathname);
 ```
 
 ### link()/unlink()
-创建/删除硬链接
+Create/remove hard link
 
 ```c
 #include <unistd.h>
@@ -251,7 +251,7 @@ int unlink(const char *pathname);
 ```
 
 ### symlink()/readlink()
-创建/读取符号链接
+Create/read symbolic link
 
 ```c
 #include <unistd.h>
@@ -260,7 +260,7 @@ ssize_t readlink(const char *pathname, char *buf, size_t bufsiz);
 ```
 
 ### chmod()
-改变文件权限
+Change file permissions
 
 ```c
 #include <sys/stat.h>
@@ -268,17 +268,17 @@ int chmod(const char *pathname, mode_t mode);
 ```
 
 ### chown()
-改变文件所有者
+Change file ownership
 
 ```c
 #include <unistd.h>
 int chown(const char *pathname, uid_t owner, gid_t group);
 ```
 
-## 内存管理
+## Memory Management
 
 ### brk()/sbrk()
-改变程序断点
+Change program break
 
 ```c
 #include <unistd.h>
@@ -286,10 +286,10 @@ int brk(void *addr);
 void *sbrk(intptr_t increment);
 ```
 
-**注意：** 现代程序应使用malloc/free代替这些系统调用。
+**Note:** Modern programs should use malloc/free instead of these system calls.
 
 ### mmap()
-内存映射
+Memory mapping
 
 ```c
 #include <sys/mman.h>
@@ -297,25 +297,25 @@ void *mmap(void *addr, size_t length, int prot, int flags,
            int fd, off_t offset);
 ```
 
-**参数：**
-- `addr`: 建议的映射地址（NULL表示让内核选择）
-- `length`: 映射长度
-- `prot`: 保护标志
-  - `PROT_READ`: 可读
-  - `PROT_WRITE`: 可写
-  - `PROT_EXEC`: 可执行
-  - `PROT_NONE`: 不可访问
-- `flags`: 映射标志
-  - `MAP_SHARED`: 共享映射
-  - `MAP_PRIVATE`: 私有映射
-  - `MAP_ANONYMOUS`: 匿名映射
-  - `MAP_FIXED`: 固定地址映射
-- `fd`: 文件描述符（匿名映射时使用-1）
-- `offset`: 文件偏移量
+**Parameters:**
+- `addr`: Suggested mapping address (NULL means let kernel choose)
+- `length`: Mapping length
+- `prot`: Protection flags
+  - `PROT_READ`: Readable
+  - `PROT_WRITE`: Writable
+  - `PROT_EXEC`: Executable
+  - `PROT_NONE`: Inaccessible
+- `flags`: Mapping flags
+  - `MAP_SHARED`: Shared mapping
+  - `MAP_PRIVATE`: Private mapping
+  - `MAP_ANONYMOUS`: Anonymous mapping
+  - `MAP_FIXED`: Fixed address mapping
+- `fd`: File descriptor (use -1 for anonymous mapping)
+- `offset`: File offset
 
-**示例：**
+**Example:**
 ```c
-// 匿名内存映射
+// Anonymous memory mapping
 void *ptr = mmap(NULL, 4096, PROT_READ | PROT_WRITE,
                  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 if (ptr == MAP_FAILED) {
@@ -327,7 +327,7 @@ munmap(ptr, 4096);
 ```
 
 ### munmap()
-取消内存映射
+Unmap memory
 
 ```c
 #include <sys/mman.h>
@@ -335,28 +335,28 @@ int munmap(void *addr, size_t length);
 ```
 
 ### mprotect()
-改变内存保护属性
+Change memory protection
 
 ```c
 #include <sys/mman.h>
 int mprotect(void *addr, size_t len, int prot);
 ```
 
-## 进程间通信
+## Inter-Process Communication
 
 ### pipe()
-创建管道
+Create pipe
 
 ```c
 #include <unistd.h>
 int pipe(int pipefd[2]);
 ```
 
-**参数：**
-- `pipefd[0]`: 读端文件描述符
-- `pipefd[1]`: 写端文件描述符
+**Parameters:**
+- `pipefd[0]`: Read end file descriptor
+- `pipefd[1]`: Write end file descriptor
 
-**示例：**
+**Example:**
 ```c
 int pipefd[2];
 if (pipe(pipefd) == -1) {
@@ -366,12 +366,12 @@ if (pipe(pipefd) == -1) {
 
 pid_t pid = fork();
 if (pid == 0) {
-    // 子进程 - 写入
+    // Child process - write
     close(pipefd[0]);
     write(pipefd[1], "Hello Parent", 12);
     close(pipefd[1]);
 } else {
-    // 父进程 - 读取
+    // Parent process - read
     close(pipefd[1]);
     char buf[128];
     read(pipefd[0], buf, sizeof(buf));
@@ -381,7 +381,7 @@ if (pid == 0) {
 ```
 
 ### mkfifo()
-创建命名管道（FIFO）
+Create named pipe (FIFO)
 
 ```c
 #include <sys/stat.h>
@@ -390,7 +390,7 @@ int mkfifo(const char *pathname, mode_t mode);
 ```
 
 ### shmget()/shmat()/shmdt()
-共享内存
+Shared memory
 
 ```c
 #include <sys/ipc.h>
@@ -400,31 +400,31 @@ void *shmat(int shmid, const void *shmaddr, int shmflg);
 int shmdt(const void *shmaddr);
 ```
 
-**示例：**
+**Example:**
 ```c
-// 创建共享内存
+// Create shared memory
 int shmid = shmget(IPC_PRIVATE, 1024, IPC_CREAT | 0666);
 if (shmid == -1) {
     perror("shmget");
     return -1;
 }
 
-// 附加到进程地址空间
+// Attach to process address space
 char *shared_mem = (char *)shmat(shmid, NULL, 0);
 if (shared_mem == (void *)-1) {
     perror("shmat");
     return -1;
 }
 
-// 使用共享内存
+// Use shared memory
 strcpy(shared_mem, "Shared Data");
 
-// 分离
+// Detach
 shmdt(shared_mem);
 ```
 
 ### msgget()/msgsnd()/msgrcv()
-消息队列
+Message queues
 
 ```c
 #include <sys/msg.h>
@@ -434,10 +434,10 @@ ssize_t msgrcv(int msqid, void *msgp, size_t msgsz,
                long msgtyp, int msgflg);
 ```
 
-## 网络
+## Network
 
 ### socket()
-创建套接字
+Create socket
 
 ```c
 #include <sys/types.h>
@@ -445,19 +445,19 @@ ssize_t msgrcv(int msqid, void *msgp, size_t msgsz,
 int socket(int domain, int type, int protocol);
 ```
 
-**参数：**
-- `domain`: 通信域
+**Parameters:**
+- `domain`: Communication domain
   - `AF_INET`: IPv4
   - `AF_INET6`: IPv6
-  - `AF_UNIX`: 本地通信
-- `type`: 套接字类型
+  - `AF_UNIX`: Local communication
+- `type`: Socket type
   - `SOCK_STREAM`: TCP
   - `SOCK_DGRAM`: UDP
-  - `SOCK_RAW`: 原始套接字
-- `protocol`: 协议（通常为0）
+  - `SOCK_RAW`: Raw socket
+- `protocol`: Protocol (usually 0)
 
 ### bind()
-绑定套接字到地址
+Bind socket to address
 
 ```c
 #include <sys/types.h>
@@ -466,7 +466,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 ```
 
 ### listen()
-监听连接
+Listen for connections
 
 ```c
 #include <sys/socket.h>
@@ -474,7 +474,7 @@ int listen(int sockfd, int backlog);
 ```
 
 ### accept()
-接受连接
+Accept connection
 
 ```c
 #include <sys/types.h>
@@ -483,7 +483,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 ```
 
 ### connect()
-发起连接
+Initiate connection
 
 ```c
 #include <sys/types.h>
@@ -493,7 +493,7 @@ int connect(int sockfd, const struct sockaddr *addr,
 ```
 
 ### send()/recv()
-发送/接收数据
+Send/receive data
 
 ```c
 #include <sys/socket.h>
@@ -501,28 +501,28 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t recv(int sockfd, void *buf, size_t len, int flags);
 ```
 
-## 设备控制
+## Device Control
 
 ### ioctl()
-设备控制
+Device control
 
 ```c
 #include <sys/ioctl.h>
 int ioctl(int fd, unsigned long request, ...);
 ```
 
-**示例：**
+**Example:**
 ```c
-// 获取终端窗口大小
+// Get terminal window size
 struct winsize ws;
 ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws);
 printf("Rows: %d, Cols: %d\n", ws.ws_row, ws.ws_col);
 ```
 
-## 时间管理
+## Time Management
 
 ### gettimeofday()
-获取时间
+Get time
 
 ```c
 #include <sys/time.h>
@@ -530,17 +530,17 @@ int gettimeofday(struct timeval *tv, struct timezone *tz);
 ```
 
 ### nanosleep()
-高精度睡眠
+High precision sleep
 
 ```c
 #include <time.h>
 int nanosleep(const struct timespec *req, struct timespec *rem);
 ```
 
-## 信号处理
+## Signal Handling
 
 ### signal()
-设置信号处理函数
+Set signal handler
 
 ```c
 #include <signal.h>
@@ -549,7 +549,7 @@ sighandler_t signal(int signum, sighandler_t handler);
 ```
 
 ### sigaction()
-高级信号处理
+Advanced signal handling
 
 ```c
 #include <signal.h>
@@ -557,18 +557,18 @@ int sigaction(int signum, const struct sigaction *act,
               struct sigaction *oldact);
 ```
 
-**sigaction结构：**
+**sigaction structure:**
 ```c
 struct sigaction {
-    void (*sa_handler)(int);            // 信号处理函数
-    void (*sa_sigaction)(int, siginfo_t *, void *); // SA_SIGINFO的处理函数
-    sigset_t sa_mask;                   // 阻塞的信号
-    int sa_flags;                       // 标志
-    void (*sa_restorer)(void);          // 已废弃
+    void (*sa_handler)(int);            // Signal handler function
+    void (*sa_sigaction)(int, siginfo_t *, void *); // SA_SIGINFO handler
+    sigset_t sa_mask;                   // Blocked signals
+    int sa_flags;                       // Flags
+    void (*sa_restorer)(void);          // Deprecated
 };
 ```
 
-**示例：**
+**Example:**
 ```c
 #include <signal.h>
 #include <stdio.h>
@@ -593,25 +593,25 @@ int main() {
 }
 ```
 
-## 错误代码
+## Error Codes
 
-所有系统调用在失败时都会设置`errno`：
+All system calls set `errno` on failure:
 
-| 错误代码 | 含义 |
-|---------|------|
-| EACCES | 权限被拒绝 |
-| EAGAIN | 资源暂时不可用 |
-| EBADF | 无效的文件描述符 |
-| EEXIST | 文件已存在 |
-| EINVAL | 无效参数 |
-| EIO | I/O错误 |
-| ENOENT | 文件或目录不存在 |
-| ENOMEM | 内存不足 |
-| ENOSPC | 设备上没有空间 |
-| EPERM | 操作不允许 |
-| EPIPE | 管道破裂 |
+| Error Code | Meaning |
+|------------|---------|
+| EACCES | Permission denied |
+| EAGAIN | Resource temporarily unavailable |
+| EBADF | Invalid file descriptor |
+| EEXIST | File exists |
+| EINVAL | Invalid argument |
+| EIO | I/O error |
+| ENOENT | File or directory not found |
+| ENOMEM | Not enough memory |
+| ENOSPC | No space left on device |
+| EPERM | Operation not permitted |
+| EPIPE | Broken pipe |
 
 ---
 
-*文档版本：1.0*
-*最后更新：2024年1月*
+*Documentation Version: 1.0*
+*Last updated: January 2024*

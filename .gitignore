@@ -1,6 +1,6 @@
 # Vest-OS .gitignore
 
-# 忽略CLAUDE.md文档（包含系统敏感信息）
+# 忽略CLAUDE.md文档
 CLAUDE.md
 modules/*/CLAUDE.md
 

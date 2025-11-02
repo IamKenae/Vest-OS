@@ -1,41 +1,41 @@
-# Vest-OS 操作系统架构设计
+# Vest-OS Operating System Architecture Design
 
-## 概述
+## Overview
 
-Vest-OS 是一个基于微内核架构的现代操作系统，支持32位和64位处理器架构。本文档详细描述了系统的架构设计、模块分解、以及关键设计决策。
+Vest-OS is a modern operating system based on microkernel architecture, supporting both 32-bit and 64-bit processor architectures. This document describes in detail the system's architecture design, module decomposition, and key design decisions.
 
-## 系统架构图
+## System Architecture Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        用户空间 (User Space)                        │
+│                        User Space                                   │
 ├─────────────────────────────────────────────────────────────────────┤
-│  应用程序层 (Application Layer)                                     │
+│  Application Layer                                                │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
 │  │ GUI Apps │ │ CLI Apps │ │ System   │ │ Services │ │ Drivers  │   │
 │  │          │ │          │ │ Utilities│ │          │ │ (User)   │   │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
 ├─────────────────────────────────────────────────────────────────────┤
-│  系统服务层 (System Services Layer)                                 │
+│  System Services Layer                                            │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐   │
 │  │ File     │ │ Network  │ │ Process  │ │ Memory   │ │ Device   │   │
 │  │ System   │ │ Stack    │ │ Manager  │ │ Manager  │ │ Manager  │   │
 │  │ Service  │ │ Service  │ │ Service  │ │ Service  │ │ Service  │   │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘   │
 ├─────────────────────────────────────────────────────────────────────┤
-│  系统调用接口层 (System Call Interface Layer)                        │
+│  System Call Interface Layer                                      │
 │  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │              系统调用网关 (Syscall Gateway)                      │ │
+│  │              System Call Gateway                                │ │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │ │
 │  │  │ POSIX API   │ │ VestOS API  │ │ Network API │ │ Device API  │ │ │
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────────────┤
-│                        内核空间 (Kernel Space)                       │
+│                        Kernel Space                                │
 ├─────────────────────────────────────────────────────────────────────┤
-│  微内核 (Microkernel)                                               │
+│  Microkernel                                                       │
 │  ┌─────────────────────────────────────────────────────────────────┐ │
-│  │                     内核核心 (Kernel Core)                      │ │
+│  │                     Kernel Core                                  │ │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │ │
 │  │  │ Scheduler   │ │ IPC Manager │ │ Memory Mgmt │ │ Interrupt   │ │ │
 │  │  │             │ │             │ │             │ │ Handler     │ │ │
@@ -46,7 +46,7 @@ Vest-OS 是一个基于微内核架构的现代操作系统，支持32位和64�
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────────────┤
-│  硬件抽象层 (Hardware Abstraction Layer - HAL)                       │
+│  Hardware Abstraction Layer (HAL)                                 │
 │  ┌─────────────────────────────────────────────────────────────────┐ │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │ │
 │  │  │ CPU HAL     │ │ Memory HAL  │ │ I/O HAL     │ │ Interrupt   │ │ │
@@ -54,7 +54,7 @@ Vest-OS 是一个基于微内核架构的现代操作系统，支持32位和64�
 │  │  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────┘ │
 ├─────────────────────────────────────────────────────────────────────┤
-│                          硬件层 (Hardware)                           │
+│                          Hardware                                   │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
 │  │   CPU       │ │    RAM      │ │    I/O      │ │  Storage    │   │
 │  │ (32/64-bit) │ │             │ │ Devices     │ │ Devices     │   │
@@ -62,89 +62,89 @@ Vest-OS 是一个基于微内核架构的现代操作系统，支持32位和64�
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 核心设计原则
+## Core Design Principles
 
-### 1. 微内核架构 (Microkernel Architecture)
-- **最小化内核**: 内核只包含最基本的功能
-- **服务外置**: 大部分系统服务运行在用户空间
-- **模块化设计**: 每个服务都是独立的模块
-- **故障隔离**: 单个服务崩溃不影响整个系统
+### 1. Microkernel Architecture
+- **Minimal Kernel**: Kernel contains only the most basic functions
+- **External Services**: Most system services run in user space
+- **Modular Design**: Each service is an independent module
+- **Fault Isolation**: Single service crash does not affect the entire system
 
-### 2. 分层架构 (Layered Architecture)
-- **清晰的层次结构**: 每层只与相邻层交互
-- **抽象接口**: 通过标准接口实现层间通信
-- **可替换性**: 每层可以独立替换和升级
+### 2. Layered Architecture
+- **Clear Hierarchy**: Each layer only interacts with adjacent layers
+- **Abstract Interfaces**: Standard interfaces for inter-layer communication
+- **Replaceability**: Each layer can be independently replaced and upgraded
 
-### 3. 模块化设计 (Modular Design)
-- **松耦合**: 模块间依赖最小化
-- **高内聚**: 每个模块功能明确
-- **可扩展性**: 新功能可以作为新模块添加
+### 3. Modular Design
+- **Loose Coupling**: Minimize dependencies between modules
+- **High Cohesion**: Each module has clear functionality
+- **Scalability**: New features can be added as new modules
 
-## 模块分解方案
+## Module Decomposition
 
-### 内核模块 (Kernel Modules)
+### Kernel Modules
 
-#### 1. 内核核心 (Kernel Core)
+#### 1. Kernel Core
 ```
 kernel/
 ├── core/
-│   ├── scheduler.c/h      # 进程调度器
-│   ├── ipc.c/h           # 进程间通信
-│   ├── memory.c/h        # 内存管理
-│   ├── interrupt.c/h     # 中断处理
-│   ├── syscall.c/h       # 系统调用处理
-│   ├── exception.c/h     # 异常处理
-│   └── timer.c/h         # 定时器管理
+│   ├── scheduler.c/h      # Process scheduler
+│   ├── ipc.c/h           # Inter-process communication
+│   ├── memory.c/h        # Memory management
+│   ├── interrupt.c/h     # Interrupt handling
+│   ├── syscall.c/h       # System call handling
+│   ├── exception.c/h     # Exception handling
+│   └── timer.c/h         # Timer management
 ```
 
-#### 2. 设备驱动 (Device Drivers)
+#### 2. Device Drivers
 ```
 kernel/
 ├── drivers/
 │   ├── tty/
-│   │   ├── tty.c/h       # TTY终端驱动
-│   │   ├── console.c/h   # 控制台驱动
-│   │   └── keyboard.c/h  # 键盘驱动
+│   │   ├── tty.c/h       # TTY terminal driver
+│   │   ├── console.c/h   # Console driver
+│   │   └── keyboard.c/h  # Keyboard driver
 │   ├── storage/
-│   │   ├── ata.c/h       # ATA/SATA驱动
-│   │   ├── ahci.c/h      # AHCI驱动
-│   │   └── nvme.c/h      # NVMe驱动
+│   │   ├── ata.c/h       # ATA/SATA driver
+│   │   ├── ahci.c/h      # AHCI driver
+│   │   └── nvme.c/h      # NVMe driver
 │   └── network/
-│       ├── rtl8139.c/h   # 网卡驱动示例
-│       └── e1000.c/h     # Intel网卡驱动
+│       ├── rtl8139.c/h   # Network card driver example
+│       └── e1000.c/h     # Intel network card driver
 ```
 
-#### 3. 硬件抽象层 (Hardware Abstraction Layer)
+#### 3. Hardware Abstraction Layer
 ```
 kernel/
 ├── hal/
 │   ├── x86/
-│   │   ├── 32bit/        # 32位架构支持
+│   │   ├── 32bit/        # 32-bit architecture support
 │   │   │   ├── cpu.c/h
 │   │   │   ├── memory.c/h
 │   │   │   └── interrupt.c/h
-│   │   └── 64bit/        # 64位架构支持
+│   │   └── 64bit/        # 64-bit architecture support
 │   │       ├── cpu.c/h
 │   │       ├── memory.c/h
 │   │       └── interrupt.c/h
-│   ├── arm/              # ARM架构支持(预留)
-│   └── common/           # 通用HAL组件
+│   ├── arm/              # ARM architecture support (reserved)
+│   └── common/           # Common HAL components
 ```
 
-### 用户空间模块 (User Space Modules)
+### User Space Modules
 
-#### 1. 系统服务 (System Services)
+#### 1. System Services
 ```
 userspace/
 ├── services/
 │   ├── filesystem/
-│   │   ├── vfs.c/h       # 虚拟文件系统
-│   │   ├── ext2.c/h      # EXT2文件系统
-│   │   └── fat32.c/h     # FAT32文件系统
+│   │   ├── vfs.c/h       # Virtual file system
+│   │   ├── ext2.c/h      # EXT2 file system
+│   │   └── fat32.c/h     # FAT32 file system
 │   ├── network/
-│   │   ├── tcpip.c/h     # TCP/IP协议栈
-│   │   ├── udp.c/h       # UDP协议
-│   │   └── dhcp.c/h      # DHCP客户端
+│   │   ├── tcpip.c/h     # TCP/IP protocol stack
+│   │   ├── udp.c/h       # UDP protocol
+│   │   └── dhcp.c/h      # DHCP client
 │   ├── process/
 │   │   ├── process_manager.c/h
 │   │   └── thread_manager.c/h
@@ -153,36 +153,36 @@ userspace/
 │       └── allocator.c/h
 ```
 
-#### 2. 系统库 (System Libraries)
+#### 2. System Libraries
 ```
 userspace/
 ├── lib/
-│   ├── libc/             # C标准库
-│   ├── libposix/         # POSIX兼容库
-│   ├── libvestos/        # VestOS专用库
-│   └── libgui/           # GUI库(可选)
+│   ├── libc/             # C standard library
+│   ├── libposix/         # POSIX compatibility library
+│   ├── libvestos/        # VestOS specific library
+│   └── libgui/           # GUI library (optional)
 ```
 
-#### 3. 系统工具 (System Utilities)
+#### 3. System Utilities
 ```
 userspace/
 ├── utils/
-│   ├── shell/            # Shell程序
-│   ├── init/             # 初始化程序
-│   ├── coreutils/        # 核心工具集
-│   └── system/           # 系统管理工具
+│   ├── shell/            # Shell program
+│   ├── init/             # Initialization program
+│   ├── coreutils/        # Core utilities
+│   └── system/           # System management tools
 ```
 
-## 内核和用户空间分离策略
+## Kernel and User Space Separation Strategy
 
-### 1. 地址空间分离
-- **内核空间**: 高地址空间 (0xC0000000 - 0xFFFFFFFF for 32-bit)
-- **用户空间**: 低地址空间 (0x00000000 - 0xBFFFFFFF for 32-bit)
-- **保护机制**: 硬件级内存保护，防止用户程序访问内核空间
+### 1. Address Space Separation
+- **Kernel Space**: High address space (0xC0000000 - 0xFFFFFFFF for 32-bit)
+- **User Space**: Low address space (0x00000000 - 0xBFFFFFFF for 32-bit)
+- **Protection Mechanism**: Hardware-level memory protection, preventing user programs from accessing kernel space
 
-### 2. 系统调用机制
+### 2. System Call Mechanism
 ```c
-// 系统调用接口设计
+// System call interface design
 typedef struct {
     uint32_t syscall_number;
     uint32_t arg1;
@@ -192,25 +192,25 @@ typedef struct {
     uint32_t arg5;
 } syscall_args_t;
 
-// 系统调用处理流程
-// 用户程序 -> INT 0x80 -> 内核syscall_handler -> 具体服务实现
+// System call handling flow
+// User program -> INT 0x80 -> Kernel syscall_handler -> Specific service implementation
 ```
 
-### 3. 进程间通信 (IPC)
-- **消息传递**: 基于消息队列的异步通信
-- **共享内存**: 高性能数据共享机制
-- **信号机制**: 轻量级事件通知
+### 3. Inter-Process Communication (IPC)
+- **Message Passing**: Asynchronous communication based on message queues
+- **Shared Memory**: High-performance data sharing mechanism
+- **Signal Mechanism**: Lightweight event notification
 
-### 4. 服务管理
-- **服务注册**: 动态服务注册和发现
-- **服务监控**: 服务健康状态监控
-- **服务重启**: 自动故障恢复机制
+### 4. Service Management
+- **Service Registration**: Dynamic service registration and discovery
+- **Service Monitoring**: Service health status monitoring
+- **Service Restart**: Automatic failure recovery mechanism
 
-## 32/64位兼容性设计方案
+## 32/64-bit Compatibility Design
 
-### 1. 架构抽象层
+### 1. Architecture Abstraction Layer
 ```c
-// 架构相关抽象接口
+// Architecture-specific abstract interface
 typedef struct {
     uint32_t bits;         // 32 or 64
     void (*cpu_init)(void);
@@ -222,12 +222,12 @@ typedef struct {
 } arch_interface_t;
 ```
 
-### 2. 数据类型兼容性
+### 2. Data Type Compatibility
 ```c
-// 统一的数据类型定义
+// Unified data type definitions
 #include <stdint.h>
 
-// 指针大小的处理
+// Pointer size handling
 #if defined(__x86_64__)
     typedef uint64_t ptr_t;
     typedef uint64_t size_t;
@@ -239,14 +239,14 @@ typedef struct {
 #endif
 ```
 
-### 3. 内存管理兼容性
-- **页面大小**: 4KB页面统一支持
-- **地址空间**: 32位支持4GB，64位支持更大地址空间
-- **内存布局**: 兼容的内存布局设计
+### 3. Memory Management Compatibility
+- **Page Size**: Unified 4KB page support
+- **Address Space**: 32-bit supports 4GB, 64-bit supports larger address space
+- **Memory Layout**: Compatible memory layout design
 
-### 4. 编译时配置
+### 4. Compile-time Configuration
 ```makefile
-# Makefile中的架构配置
+# Architecture configuration in Makefile
 ifeq ($(ARCH), x86_64)
     CFLAGS += -m64 -D__x86_64__
     ASFLAGS += --64
@@ -258,171 +258,171 @@ else ifeq ($(ARCH), i386)
 endif
 ```
 
-## TTY终端支持
+## TTY Terminal Support
 
-### 1. TTY架构设计
+### 1. TTY Architecture Design
 ```
-TTY子系统架构:
+TTY Subsystem Architecture:
 ┌─────────────────────────────────────────────────┐
-│              用户空间TTY应用程序                   │
+│              User Space TTY Applications         │
 ├─────────────────────────────────────────────────┤
-│               TTY系统调用接口                     │
+│               TTY System Call Interface          │
 ├─────────────────────────────────────────────────┤
-│                TTY驱动层                         │
+│                TTY Driver Layer                 │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
 │  │ TTY Core    │ │ Console     │ │ Serial      │ │
 │  │ Driver      │ │ Driver      │ │ Driver      │ │
 │  └─────────────┘ └─────────────┘ └─────────────┘ │
 ├─────────────────────────────────────────────────┤
-│                硬件层                            │
+│                Hardware Layer                  │
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
 │  │ VGA Display │ │ Keyboard    │ │ Serial Port │ │
 │  └─────────────┘ └─────────────┘ └─────────────┘ │
 └─────────────────────────────────────────────────┘
 ```
 
-### 2. TTY数据结构
+### 2. TTY Data Structures
 ```c
-// TTY设备结构
+// TTY device structure
 typedef struct tty_device {
-    int tty_id;                    // TTY编号
-    char *buffer;                  // 输入缓冲区
-    size_t buffer_size;           // 缓冲区大小
-    size_t read_pos;              // 读位置
-    size_t write_pos;             // 写位置
+    int tty_id;                    // TTY number
+    char *buffer;                  // Input buffer
+    size_t buffer_size;           // Buffer size
+    size_t read_pos;              // Read position
+    size_t write_pos;             // Write position
 
-    // TTY配置
-    struct termios termios;       // 终端配置
+    // TTY configuration
+    struct termios termios;       // Terminal configuration
 
-    // 回调函数
+    // Callback functions
     int (*write)(struct tty_device *tty, const char *data, size_t len);
     int (*read)(struct tty_device *tty, char *data, size_t len);
     void (*flush)(struct tty_device *tty);
 
-    // 硬件相关
-    void *hardware_data;          // 硬件特定数据
+    // Hardware related
+    void *hardware_data;          // Hardware-specific data
 } tty_device_t;
 ```
 
-### 3. 多线程支持
+### 3. Multi-threading Support
 
-#### 线程管理架构
+#### Thread Management Architecture
 ```c
-// 线程控制块
+// Thread control block
 typedef struct thread {
-    uint32_t tid;                 // 线程ID
-    uint32_t pid;                 // 进程ID
+    uint32_t tid;                 // Thread ID
+    uint32_t pid;                 // Process ID
 
-    // 执行上下文
-    cpu_context_t context;        // CPU寄存器上下文
+    // Execution context
+    cpu_context_t context;        // CPU register context
 
-    // 栈信息
-    void *stack_base;             // 栈基地址
-    size_t stack_size;            // 栈大小
+    // Stack information
+    void *stack_base;             // Stack base address
+    size_t stack_size;            // Stack size
 
-    // 调度信息
-    thread_state_t state;         // 线程状态
-    uint32_t priority;            // 优先级
-    uint32_t time_slice;          // 时间片
+    // Scheduling information
+    thread_state_t state;         // Thread state
+    uint32_t priority;            // Priority
+    uint32_t time_slice;          // Time slice
 
-    // 同步原语
-    struct thread *next;          // 链表指针
+    // Synchronization primitives
+    struct thread *next;          // Linked list pointers
     struct thread *prev;
 
-    // 等待信息
-    void *wait_object;            // 等待对象
-    uint32_t wait_reason;         // 等待原因
+    // Wait information
+    void *wait_object;            // Wait object
+    uint32_t wait_reason;         // Wait reason
 } thread_t;
 ```
 
-#### 线程调度策略
-- **抢占式调度**: 基于时间片的抢占式多任务
-- **优先级调度**: 支持静态和动态优先级
-- **公平调度**: 保证线程公平执行
+#### Thread Scheduling Policies
+- **Preemptive Scheduling**: Time slice-based preemptive multitasking
+- **Priority Scheduling**: Support for static and dynamic priorities
+- **Fair Scheduling**: Ensure fair thread execution
 
-## 关键设计决策说明
+## Key Design Decisions
 
-### ADR-001: 微内核架构选择
-**决策**: 采用微内核架构而非宏内核架构
+### ADR-001: Microkernel Architecture Choice
+**Decision**: Adopt microkernel architecture instead of monolithic kernel architecture
 
-**理由**:
-- **故障隔离**: 服务故障不会导致系统崩溃
-- **模块化**: 便于开发和维护
-- **扩展性**: 新服务可以独立开发和部署
-- **安全性**: 减小攻击面，提高系统安全性
+**Rationale**:
+- **Fault Isolation**: Service failures do not cause system crashes
+- **Modularity**: Easier development and maintenance
+- **Scalability**: New services can be developed and deployed independently
+- **Security**: Reduced attack surface, improved system security
 
-**后果**:
-- **性能开销**: IPC带来的性能损失
-- **复杂性**: 需要设计高效的IPC机制
-- **开发难度**: 分布式系统设计复杂度增加
+**Consequences**:
+- **Performance Overhead**: Performance loss due to IPC
+- **Complexity**: Need to design efficient IPC mechanisms
+- **Development Difficulty**: Increased complexity of distributed system design
 
-### ADR-002: 32/64位兼容性设计
-**决策**: 在源码级支持32位和64位架构
+### ADR-002: 32/64-bit Compatibility Design
+**Decision**: Support 32-bit and 64-bit architectures at source code level
 
-**理由**:
-- **市场覆盖**: 支持更广泛的硬件平台
-- **迁移路径**: 便于从32位到64位的迁移
-- **成本控制**: 单一代码库维护成本较低
+**Rationale**:
+- **Market Coverage**: Support broader hardware platforms
+- **Migration Path**: Facilitate migration from 32-bit to 64-bit
+- **Cost Control**: Lower maintenance cost for single codebase
 
-**后果**:
-- **代码复杂性**: 需要处理架构差异
-- **测试负担**: 需要在多种架构上测试
-- **性能优化**: 难以针对特定架构深度优化
+**Consequences**:
+- **Code Complexity**: Need to handle architectural differences
+- **Testing Burden**: Need to test on multiple architectures
+- **Performance Optimization**: Difficult to deeply optimize for specific architectures
 
-### ADR-003: TTY子系统设计
-**决策**: 采用分层TTY子系统设计
+### ADR-003: TTY Subsystem Design
+**Decision**: Adopt layered TTY subsystem design
 
-**理由**:
-- **可扩展性**: 便于添加新的TTY设备
-- **统一接口**: 为上层应用提供统一的TTY接口
-- **模块化**: 硬件驱动与TTY核心逻辑分离
+**Rationale**:
+- **Scalability**: Easy to add new TTY devices
+- **Unified Interface**: Provide unified TTY interface for upper-layer applications
+- **Modularity**: Separate hardware drivers from TTY core logic
 
-**后果**:
-- **抽象开销**: 多层抽象带来的性能损失
-- **复杂性**: 需要设计良好的接口
+**Consequences**:
+- **Abstraction Overhead**: Performance loss due to multiple abstraction layers
+- **Complexity**: Need to design well-defined interfaces
 
-## 性能考虑
+## Performance Considerations
 
-### 1. 内核性能优化
-- **快速系统调用**: 使用SYSENTER/SYSEXIT指令
-- **零拷贝IPC**: 共享内存实现高效IPC
-- **缓存优化**: 优化数据结构布局提高缓存命中率
+### 1. Kernel Performance Optimization
+- **Fast System Calls**: Use SYSENTER/SYSEXIT instructions
+- **Zero-copy IPC**: Shared memory for efficient IPC
+- **Cache Optimization**: Optimize data structure layout for better cache hit rates
 
-### 2. 内存管理优化
-- **延迟分配**: 按需分配物理内存
-- **内存池**: 预分配常用大小的内存块
-- **大页支持**: 支持大页面减少TLB miss
+### 2. Memory Management Optimization
+- **Lazy Allocation**: Allocate physical memory on demand
+- **Memory Pools**: Pre-allocate commonly used memory block sizes
+- **Large Page Support**: Support large pages to reduce TLB misses
 
-### 3. 调度优化
-- **O(1)调度**: 使用多级队列实现O(1)调度
-- **CPU亲和性**: 支持CPU亲和性设置
-- **实时支持**: 支持实时调度策略
+### 3. Scheduling Optimization
+- **O(1) Scheduling**: Use multi-level queues for O(1) scheduling
+- **CPU Affinity**: Support CPU affinity settings
+- **Real-time Support**: Support real-time scheduling policies
 
-## 安全性设计
+## Security Design
 
-### 1. 内存保护
-- **用户/内核分离**: 硬件级内存保护
-- **ASLR**: 地址空间布局随机化
-- **栈保护**: 栈金丝雀和不可执行栈
+### 1. Memory Protection
+- **User/Kernel Separation**: Hardware-level memory protection
+- **ASLR**: Address Space Layout Randomization
+- **Stack Protection**: Stack canaries and non-executable stack
 
-### 2. 访问控制
-- **能力系统**: 基于能力的访问控制
-- **权限隔离**: 最小权限原则
-- **审计日志**: 系统调用审计
+### 2. Access Control
+- **Capability System**: Capability-based access control
+- **Permission Isolation**: Principle of least privilege
+- **Audit Logging**: System call auditing
 
-### 3. 防御机制
-- **SMEP/SMAP**: 防止内核执行用户代码
-- **NX位**: 数据不可执行保护
-- **KPTI**: 内核页表隔离
+### 3. Defense Mechanisms
+- **SMEP/SMAP**: Prevent kernel from executing user code
+- **NX Bit**: Non-executable data protection
+- **KPTI**: Kernel Page Table Isolation
 
-## 总结
+## Summary
 
-Vest-OS采用现代微内核架构设计，具有以下特点：
+Vest-OS adopts modern microkernel architecture design with the following characteristics:
 
-1. **模块化设计**: 清晰的模块边界，便于开发和维护
-2. **架构兼容性**: 同时支持32位和64位架构
-3. **可扩展性**: 良好的扩展机制，便于添加新功能
-4. **安全性**: 多层安全防护机制
-5. **性能**: 针对性能关键路径的优化
+1. **Modular Design**: Clear module boundaries for easier development and maintenance
+2. **Architecture Compatibility**: Support for both 32-bit and 64-bit architectures
+3. **Scalability**: Good extension mechanisms for adding new features
+4. **Security**: Multi-layer security protection mechanisms
+5. **Performance**: Optimization for performance-critical paths
 
-该架构设计为Vest-OS提供了坚实的基础，支持未来功能的扩展和性能的优化。
+This architecture design provides a solid foundation for Vest-OS, supporting future feature expansion and performance optimization.

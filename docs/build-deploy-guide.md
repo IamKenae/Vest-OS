@@ -1,28 +1,28 @@
-# Vest-OS 构建和部署指南
+# Vest-OS Build and Deployment Guide
 
-## 目录
-- [环境准备](#环境准备)
-- [源码获取](#源码获取)
-- [构建系统](#构建系统)
-- [构建流程](#构建流程)
-- [配置选项](#配置选项)
-- [打包](#打包)
-- [部署方法](#部署方法)
-- [持续集成](#持续集成)
-- [故障排除](#故障排除)
+## Table of Contents
+- [Environment Preparation](#environment-preparation)
+- [Source Code Acquisition](#source-code-acquisition)
+- [Build System](#build-system)
+- [Build Process](#build-process)
+- [Configuration Options](#configuration-options)
+- [Packaging](#packaging)
+- [Deployment Methods](#deployment-methods)
+- [Continuous Integration](#continuous-integration)
+- [Troubleshooting](#troubleshooting)
 
-## 环境准备
+## Environment Preparation
 
-### 系统要求
+### System Requirements
 
-#### 构建环境
-- **操作系统**: Linux (Ubuntu 20.04+, CentOS 8+, Fedora 33+)
-- **CPU**: x86_64 架构，4核心以上
-- **内存**: 8GB 以上
-- **存储**: 100GB 可用空间
-- **网络**: 稳定的互联网连接
+#### Build Environment
+- **Operating System**: Linux (Ubuntu 20.04+, CentOS 8+, Fedora 33+)
+- **CPU**: x86_64 architecture, 4 cores or more
+- **Memory**: 8GB or more
+- **Storage**: 100GB available space
+- **Network**: Stable internet connection
 
-#### 必需软件包
+#### Required Software Packages
 
 **Ubuntu/Debian:**
 ```bash
@@ -66,194 +66,194 @@ sudo yum install -y \
     xorriso
 ```
 
-### 交叉编译环境（可选）
+### Cross-Compilation Environment (Optional)
 
-#### ARM64交叉编译
+#### ARM64 Cross-Compilation
 ```bash
 sudo apt install -y gcc-aarch64-linux-gnu \
                        binutils-aarch64-linux-gnu \
                        libc6-dev-arm64-cross
 ```
 
-#### RISC-V交叉编译
+#### RISC-V Cross-Compilation
 ```bash
 sudo apt install -y gcc-riscv64-linux-gnu \
                        binutils-riscv64-linux-gnu \
                        libc6-dev-riscv64-cross
 ```
 
-## 源码获取
+## Source Code Acquisition
 
-### 从Git仓库克隆
+### Clone from Git Repository
 ```bash
-# 克隆主仓库
+# Clone main repository
 git clone https://github.com/vest-os/vest-os.git
 cd vest-os
 
-# 克隆子模块
+# Clone submodules
 git submodule update --init --recursive
 ```
 
-### 检出特定版本
+### Checkout Specific Version
 ```bash
-# 查看所有标签
+# View all tags
 git tag -l
 
-# 检出稳定版本
+# Checkout stable version
 git checkout v1.0.0
 
-# 检出开发分支
+# Checkout development branch
 git checkout develop
 ```
 
-### 验证源码
+### Verify Source Code
 ```bash
-# 验证GPG签名（如果有）
+# Verify GPG signature (if available)
 git verify-tag v1.0.0
 
-# 计算SHA256哈希
+# Calculate SHA256 hash
 sha256sum vest-os.tar.gz
 ```
 
-## 构建系统
+## Build System
 
-Vest-OS使用基于GNU Make的构建系统，支持并行构建和增量编译。
+Vest-OS uses a GNU Make-based build system that supports parallel builds and incremental compilation.
 
-### 构建系统结构
+### Build System Structure
 ```
 vest-os/
-├── Makefile              # 主Makefile
-├── config/               # 配置文件
-│   ├── defconfig         # 默认配置
-│   └── custom.config     # 自定义配置
-├── scripts/              # 构建脚本
-│   ├── build.sh         # 构建脚本
-│   └── package.sh       # 打包脚本
-├── tools/                # 构建工具
-├── kernel/               # 内核源码
-├── userspace/            # 用户空间程序
-└── docs/                 # 文档
+├── Makefile              # Main Makefile
+├── config/               # Configuration files
+│   ├── defconfig         # Default configuration
+│   └── custom.config     # Custom configuration
+├── scripts/              # Build scripts
+│   ├── build.sh         # Build script
+│   └── package.sh       # Packaging script
+├── tools/                # Build tools
+├── kernel/               # Kernel source code
+├── userspace/            # User space programs
+└── docs/                 # Documentation
 ```
 
-### Makefile目标
+### Makefile Targets
 
 ```bash
-# 显示所有目标
+# Show all targets
 make help
 
-# 清理构建目录
+# Clean build directory
 make clean
 
-# 完全清理（包括下载的文件）
+# Complete clean (including downloaded files)
 make distclean
 
-# 配置
-make config               # 交互式配置
-make menuconfig           # 菜单配置
-make oldconfig            # 使用旧配置
-make defconfig            # 默认配置
+# Configuration
+make config               # Interactive configuration
+make menuconfig           # Menu configuration
+make oldconfig            # Use old configuration
+make defconfig            # Default configuration
 
-# 构建
-make all                  # 构建所有组件
-make kernel               # 只构建内核
-make userspace            # 只构建用户空间
-make tools                # 只构建工具
+# Build
+make all                  # Build all components
+make kernel               # Build kernel only
+make userspace            # Build user space only
+make tools                # Build tools only
 
-# 测试
-make test                 # 运行测试
-make test-kernel          # 测试内核
-make test-userspace       # 测试用户空间
+# Test
+make test                 # Run tests
+make test-kernel          # Test kernel
+make test-userspace       # Test user space
 
-# 打包
-make iso                  # 创建ISO镜像
-make img                  # 创建磁盘镜像
-make tar                  # 创建tar包
+# Package
+make iso                  # Create ISO image
+make img                  # Create disk image
+make tar                  # Create tar package
 
-# 安装
-make install              # 安装到系统
-make install-headers      # 安装头文件
+# Install
+make install              # Install to system
+make install-headers      # Install header files
 ```
 
-## 构建流程
+## Build Process
 
-### 1. 配置
+### 1. Configuration
 
-#### 交互式配置
+#### Interactive Configuration
 ```bash
 make menuconfig
 ```
 
-配置菜单包括：
-- **目标架构**: x86_64, ARM64, RISC-V
-- **CPU特性**: SMP, 64位, 虚拟化支持
-- **设备驱动**: 网络, 存储, 输入设备
-- **文件系统**: EXT4, BTRFS, NFS
-- **网络协议**: TCP/IP, IPv6, 无线
-- **安全特性**: SELinux, 加密支持
-- **调试选项**: 内核调试, 符号表
+Configuration menu includes:
+- **Target Architecture**: x86_64, ARM64, RISC-V
+- **CPU Features**: SMP, 64-bit, virtualization support
+- **Device Drivers**: Network, storage, input devices
+- **File Systems**: EXT4, BTRFS, NFS
+- **Network Protocols**: TCP/IP, IPv6, wireless
+- **Security Features**: SELinux, encryption support
+- **Debug Options**: Kernel debugging, symbol tables
 
-#### 使用预定义配置
+#### Use Predefined Configurations
 ```bash
-# 使用服务器配置
+# Use server configuration
 make vest-os_server_defconfig
 
-# 使用桌面配置
+# Use desktop configuration
 make vest-os_desktop_defconfig
 
-# 使用嵌入式配置
+# Use embedded configuration
 make vest-os_embedded_defconfig
 ```
 
-#### 自定义配置文件
+#### Custom Configuration File
 ```bash
-# 创建配置文件
+# Create configuration file
 cp config/defconfig .config
 
-# 编辑配置
+# Edit configuration
 vim .config
 
-# 验证配置
+# Verify configuration
 make olddefconfig
 ```
 
-### 2. 构建
+### 2. Build
 
-#### 完整构建
+#### Complete Build
 ```bash
-# 使用所有CPU核心
+# Use all CPU cores
 make -j$(nproc)
 
-# 指定并行度
+# Specify parallelism
 make -j8
 
-# 构建时显示详细信息
+# Build with verbose information
 make V=1
 
-# 静默构建
+# Silent build
 make -s
 ```
 
-#### 分步构建
+#### Step-by-Step Build
 ```bash
-# 1. 构建工具链
+# 1. Build toolchain
 make toolchain
 
-# 2. 构建内核
+# 2. Build kernel
 make kernel
 
-# 3. 构建初始化RAMFS
+# 3. Build initramfs
 make initramfs
 
-# 4. 构建用户空间
+# 4. Build user space
 make userspace
 
-# 5. 创建系统镜像
+# 5. Create system image
 make image
 ```
 
-### 3. 配置示例
+### 3. Configuration Examples
 
-#### 最小系统配置
+#### Minimal System Configuration
 ```config
 CONFIG_ARCH_X86_64=y
 CONFIG_SMP=y
@@ -266,7 +266,7 @@ CONFIG_TCP=y
 CONFIG_E1000=y
 ```
 
-#### 服务器配置
+#### Server Configuration
 ```config
 CONFIG_ARCH_X86_64=y
 CONFIG_SMP=y
@@ -286,7 +286,7 @@ CONFIG_DM_MIRROR=y
 CONFIG_DM_ZERO=y
 ```
 
-#### 桌面配置
+#### Desktop Configuration
 ```config
 CONFIG_ARCH_X86_64=y
 CONFIG_SMP=y
@@ -308,27 +308,27 @@ CONFIG_ACPI_BATTERY=y
 CONFIG_ACPI_AC=y
 ```
 
-## 配置选项详解
+## Configuration Options Details
 
-### 内核配置
+### Kernel Configuration
 
-#### 基本配置
+#### Basic Configuration
 ```config
-# 版本信息
+# Version information
 CONFIG_VERSION="1.0.0"
 CONFIG_LOCALVERSION="-custom"
 
-# 编译器选项
+# Compiler options
 CONFIG_CC_VERSION_TEXT="gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0"
 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y
 CONFIG_CC_OPTIMIZE_FOR_SIZE=n
 
-# 链接器选项
+# Linker options
 CONFIG_LD_VERSION="2.34"
 CONFIG_LD_SCRIPT_KERNEL=y
 CONFIG_LD_SCRIPT_BUILTIN=y
 
-# 调试信息
+# Debug information
 CONFIG_DEBUG_KERNEL=y
 CONFIG_DEBUG_INFO=y
 CONFIG_DEBUG_INFO_REDUCED=n
@@ -336,44 +336,44 @@ CONFIG_STRIP_ASM_SYMS=y
 CONFIG_READABLE_ASM=y
 ```
 
-#### 内存管理
+#### Memory Management
 ```config
-# 内存模型
+# Memory model
 CONFIG_FLATMEM=y
 CONFIG_SPARSEMEM=n
 CONFIG_MEMORY_HOTPLUG=n
 
-# SLAB分配器
+# SLAB allocator
 CONFIG_SLUB=y
 CONFIG_SLUB_DEBUG=y
 CONFIG_SLUB_CPU_PARTIAL=y
 
-# 虚拟内存
+# Virtual memory
 CONFIG_MMU=y
 CONFIG_PAGE_OFFSET=0xffff880000000000
 CONFIG_PHYSICAL_START=0x1000000
 CONFIG_PHYSICAL_ALIGN=0x200000
 ```
 
-#### 进程调度
+#### Process Scheduling
 ```config
-# 调度器
+# Scheduler
 CONFIG_SCHED_AUTOGROUP=y
 CONFIG_SCHED_DEBUG=y
 CONFIG_SCHEDSTATS=y
 
-# 抢占模式
+# Preemption mode
 CONFIG_PREEMPT_NONE=y
 CONFIG_PREEMPT_VOLUNTARY=n
 CONFIG_PREEMPT=y
 CONFIG_PREEMPT_RT=n
 ```
 
-### 用户空间配置
+### User Space Configuration
 
-#### 初始化系统
+#### Initialization System
 ```config
-# Init系统
+# Init system
 CONFIG_INIT_SYSTEM=y
 CONFIG_INIT_SYSTEMD=y
 
@@ -381,97 +381,97 @@ CONFIG_INIT_SYSTEMD=y
 CONFIG_BASH=y
 CONFIG_ZSH=y
 
-# 核心工具
+# Core utilities
 CONFIG_COREUTILS=y
 CONFIG_UTIL_LINUX=y
 CONFIG_PROCPS=y
 CONFIG_E2FSPROGS=y
 ```
 
-#### 网络工具
+#### Network Tools
 ```config
-# 基本网络工具
+# Basic network tools
 CONFIG_IPROUTE2=y
 CONFIG_IPTABLES=y
 CONFIG_NFTABLES=y
 CONFIG_WPA_SUPPLICANT=y
 
-# 网络服务
+# Network services
 CONFIG_SSHD=y
 CONFIG_NTPD=y
 CONFIG_CRON=y
 ```
 
-## 打包
+## Packaging
 
-### 创建ISO镜像
+### Create ISO Image
 ```bash
-# 创建可启动ISO
+# Create bootable ISO
 make iso
 
-# 带UEFI支持的ISO
+# ISO with UEFI support
 make iso UEFI=y
 
-# 创建混合ISO（BIOS+UEFI）
+# Create hybrid ISO (BIOS+UEFI)
 make iso HYBRID=y
 ```
 
-### 创建磁盘镜像
+### Create Disk Image
 ```bash
-# 创建虚拟磁盘镜像
+# Create virtual disk image
 make img
 
-# 指定镜像大小（GB）
+# Specify image size (GB)
 make img SIZE=8
 
-# 创建云镜像（qcow2格式）
+# Create cloud image (qcow2 format)
 make img FORMAT=qcow2
 
-# 创建原始镜像
+# Create raw image
 make img FORMAT=raw
 ```
 
-### 创建tar包
+### Create tar Package
 ```bash
-# 创建源码tar包
+# Create source tar package
 make tar
 
-# 创建二进制tar包
+# Create binary tar package
 make tar-binary
 
-# 创建SDK tar包
+# Create SDK tar package
 make tar-sdk
 ```
 
-## 部署方法
+## Deployment Methods
 
-### 1. 裸机部署
+### 1. Bare Metal Deployment
 
-#### 创建启动USB
+#### Create Bootable USB
 ```bash
-# 写入ISO到USB
+# Write ISO to USB
 sudo dd if=vest-os-1.0.0.iso of=/dev/sdX bs=4M status=progress
 sync
 
-# 或使用ddrescue（更安全）
+# Or use ddrescue (safer)
 sudo ddrescue vest-os-1.0.0.iso /dev/sdX
 ```
 
-#### 网络启动（PXE）
+#### Network Boot (PXE)
 ```bash
-# 设置TFTP服务器
+# Setup TFTP server
 mkdir -p /tftpboot
 cp vest-os-1.0.0/vmlinuz /tftpboot/
 cp vest-os-1.0.0/initramfs /tftpboot/
 
-# DHCP配置（/etc/dhcp/dhcpd.conf）
+# DHCP configuration (/etc/dhcp/dhcpd.conf)
 subnet 192.168.1.0 netmask 255.255.255.0 {
     range 192.168.1.100 192.168.1.200;
     next-server 192.168.1.1;
     filename "pxelinux.0";
 }
 
-# TFTP配置（/etc/xinetd.d/tftp）
+# TFTP configuration (/etc/xinetd.d/tftp)
 service tftp {
     protocol        = udp
     port            = 69
@@ -484,14 +484,14 @@ service tftp {
 }
 ```
 
-### 2. 虚拟化部署
+### 2. Virtualization Deployment
 
 #### KVM/QEMU
 ```bash
-# 创建虚拟磁盘
+# Create virtual disk
 qemu-img create -f qcow2 vest-os.qcow2 20G
 
-# 启动虚拟机
+# Start virtual machine
 qemu-system-x86_64 \
     -m 4096 \
     -cpu host \
@@ -500,7 +500,7 @@ qemu-system-x86_64 \
     -cdrom vest-os-1.0.0.iso \
     -boot d
 
-# 或使用virt-install
+# Or use virt-install
 virt-install \
     --name vest-os \
     --memory 4096 \
@@ -514,7 +514,7 @@ virt-install \
 
 #### VirtualBox
 ```bash
-# 创建虚拟机
+# Create virtual machine
 VBoxManage createvm --name "Vest-OS" --register
 VBoxManage modifyvm "Vest-OS" --memory 4096 --cpus 4
 VBoxManage storagectl "Vest-OS" --name "SATA" --add sata
@@ -525,13 +525,13 @@ VBoxManage storageattach "Vest-OS" --storagectl "SATA" --port 1 --device 0 --typ
 
 #### VMware
 ```bash
-# 创建OVF模板
+# Create OVF template
 ovftool \
     --compress=9 \
     vest-os.vmx \
     vest-os.ovf
 
-# 部署到vSphere
+# Deploy to vSphere
 govc import.ovf \
     -ds datastore1 \
     -pool Resources \
@@ -539,18 +539,18 @@ govc import.ovf \
     vest-os.ovf
 ```
 
-### 3. 云平台部署
+### 3. Cloud Platform Deployment
 
 #### OpenStack
 ```bash
-# 上传镜像
+# Upload image
 openstack image create \
     --disk-format qcow2 \
     --container-format bare \
     --file vest-os-1.0.0.qcow2 \
     vest-os-1.0.0
 
-# 创建实例
+# Create instance
 openstack server create \
     --image vest-os-1.0.0 \
     --flavor m1.medium \
@@ -560,18 +560,18 @@ openstack server create \
 
 #### AWS EC2
 ```bash
-# 安装AWS CLI
+# Install AWS CLI
 pip install awscli
 
-# 上传镜像到S3
+# Upload image to S3
 aws s3 cp vest-os-1.0.0.raw s3://my-bucket/
 
-# 导入快照
+# Import snapshot
 aws ec2 import-snapshot \
     --description "Vest-OS Snapshot" \
     --disk-container "Description=Vest-OS,Format=raw,UserBucket={S3Bucket=my-bucket,S3Key=vest-os-1.0.0.raw}"
 
-# 创建AMI
+# Create AMI
 aws ec2 register-image \
     --name "Vest-OS 1.0.0" \
     --architecture x86_64 \
@@ -582,30 +582,30 @@ aws ec2 register-image \
 
 #### Azure
 ```bash
-# 安装Azure CLI
+# Install Azure CLI
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
-# 创建存储账户
+# Create storage account
 az storage account create \
     --name mystorageaccount \
     --resource-group myResourceGroup \
     --location westus
 
-# 上传VHD
+# Upload VHD
 az storage blob upload \
     --account-name mystorageaccount \
     --container-name images \
     --file vest-os-1.0.0.vhd \
     --name vest-os-1.0.0.vhd
 
-# 创建镜像
+# Create image
 az image create \
     --resource-group myResourceGroup \
     --name vest-os-image \
     --source https://mystorageaccount.blob.core.windows.net/images/vest-os-1.0.0.vhd
 ```
 
-### 4. 容器化部署
+### 4. Containerized Deployment
 
 #### Docker
 ```dockerfile
@@ -616,10 +616,10 @@ CMD ["/sbin/init"]
 ```
 
 ```bash
-# 构建镜像
+# Build image
 docker build -t vest-os:1.0.0 .
 
-# 运行容器
+# Run container
 docker run -it --privileged vest-os:1.0.0
 ```
 
@@ -651,9 +651,9 @@ spec:
       path: /proc
 ```
 
-## 持续集成
+## Continuous Integration
 
-### GitHub Actions配置
+### GitHub Actions Configuration
 ```yaml
 # .github/workflows/build.yml
 name: Build Vest-OS
@@ -777,122 +777,122 @@ pipeline {
 }
 ```
 
-## 故障排除
+## Troubleshooting
 
-### 常见构建错误
+### Common Build Errors
 
-#### 1. 编译错误
+#### 1. Compilation Error
 ```
 error: 'CONFIG_X86_64' undeclared
 ```
-**解决方案：**
+**Solution:**
 ```bash
 make clean
 make defconfig
-make menuconfig  # 确保架构正确
+make menuconfig  # Ensure correct architecture
 make -j$(nproc)
 ```
 
-#### 2. 链接错误
+#### 2. Linking Error
 ```
 undefined reference to `symbol_name'
 ```
-**解决方案：**
+**Solution:**
 ```bash
-# 检查配置
+# Check configuration
 grep -R "symbol_name" .config
 
-# 启用相关配置
+# Enable related configuration
 make menuconfig
-# 启用包含该符号的模块
+# Enable module containing the symbol
 ```
 
-#### 3. 内存不足
+#### 3. Insufficient Memory
 ```
 g++: internal compiler error: Killed (program cc1plus)
 ```
-**解决方案：**
+**Solution:**
 ```bash
-# 减少并行任务数
+# Reduce parallel tasks
 make -j2
 
-# 或增加交换空间
+# Or increase swap space
 sudo fallocate -l 4G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
 ```
 
-#### 4. 依赖缺失
+#### 4. Missing Dependencies
 ```
 fatal error: openssl/ssl.h: No such file or directory
 ```
-**解决方案：**
+**Solution:**
 ```bash
-# 安装开发包
+# Install development packages
 sudo apt install libssl-dev
 
-# 或指定库路径
+# Or specify library path
 make CFLAGS=-I/usr/include/openssl LDFLAGS=-L/usr/lib/ssl
 ```
 
-### 性能优化
+### Performance Optimization
 
-#### 加速构建
+#### Accelerate Build
 ```bash
-# 使用ccache
+# Use ccache
 export CC="ccache gcc"
 export CXX="ccache g++"
 
-# 使用tmpfs
+# Use tmpfs
 sudo mount -t tmpfs -o size=4G tmpfs /tmp
 
-# 使用distcc（分布式编译）
+# Use distcc (distributed compilation)
 export CC="distcc gcc"
 make -j$(distcc -j)
 ```
 
-#### 增量构建
+#### Incremental Build
 ```bash
-# 启用ccache
+# Enable ccache
 export CCACHE_DIR=~/.ccache
 export CCACHE_MAXSIZE=10G
 export CCACHE_COMPRESS=1
 
-# 清理ccache
+# Clean ccache
 ccache -C
 ```
 
-### 调试技巧
+### Debugging Tips
 
-#### 查看构建日志
+#### View Build Logs
 ```bash
-# 详细日志
+# Verbose logging
 make V=1 > build.log 2>&1
 
-# 只显示错误和警告
+# Show only errors and warnings
 make 2>&1 | grep -E "(error|warning)"
 ```
 
-#### 分析构建时间
+#### Analyze Build Time
 ```bash
-# 使用make的时间分析
+# Use make's time analysis
 make --debug=basic
 
-# 或使用buildtime脚本
+# Or use buildtime script
 ./scripts/buildtime.sh
 ```
 
-#### 跟踪依赖
+#### Track Dependencies
 ```bash
-# 查看依赖关系
+# View dependency relationships
 make -p | grep -E "^[^:#=-].*:" | head
 
-# 查看特定目标的依赖
+# View dependencies for specific target
 make -qp | grep -A5 "target_name:"
 ```
 
 ---
 
-*文档版本：1.0*
-*最后更新：2024年1月*
+*Document Version: 1.0*
+*Last updated: January 2024*
