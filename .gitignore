@@ -3,6 +3,9 @@
 # 忽略CLAUDE.md文档
 CLAUDE.md
 modules/*/CLAUDE.md
+src/*/CLAUDE.md
+drivers/*/CLAUDE.md
+include/*/CLAUDE.md
 
 # 构建输出
 build/
