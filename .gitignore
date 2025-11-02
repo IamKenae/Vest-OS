@@ -1,0 +1,93 @@
+# Vest-OS .gitignore
+
+# 忽略CLAUDE.md文档（包含系统敏感信息）
+CLAUDE.md
+modules/*/CLAUDE.md
+
+# 构建输出
+build/
+dist/
+*.o
+*.ko
+*.img
+*.iso
+*.bin
+*.elf
+
+# 编译器输出
+*.d
+*.i
+*.s
+*.lst
+
+# 配置文件
+.config
+.config.old
+include/config/
+include/generated/
+
+# 模块符号
+Module.symvers
+modules.order
+
+# 临时文件
+*.tmp
+*.temp
+*~
+.#*
+
+# 日志文件
+*.log
+*.out
+
+# 测试输出
+test_results/
+coverage/
+gcov/
+
+# 调试信息
+*.gdb
+*.core
+core.*
+vgcore.*
+
+# 编辑器文件
+*.swp
+*.swo
+.DS_Store
+.vscode/
+.idea/
+
+# 工具输出
+tags
+cscope.out
+ncscope.out
+
+# 包管理
+*.tar.gz
+*.tar.bz2
+*.zip
+
+# 虚拟机文件
+*.qcow2
+*.vdi
+*.vmdk
+
+# 备份文件
+*.bak
+*.backup
+
+# 依赖目录
+node_modules/
+vendor/
+
+# 缓存
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# 文档生成
+docs/_build/
+docs/html/
+docs/latex/
