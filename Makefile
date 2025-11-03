@@ -1,5 +1,8 @@
 # Vest-OS Makefile
-# TTY终端系统构建
+# 支持内核和TTY系统构建
+
+# 默认目标
+TARGET ?= kernel
 
 # 编译器设置
 CC = gcc
@@ -9,55 +12,71 @@ AR = ar
 STRIP = strip
 
 # 编译标志
-CFLAGS = -Wall -Wextra -Werror -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
+CFLAGS = -Wall -Wextra -nostdlib -nostdinc -fno-builtin -fno-stack-protector \
          -ffreestanding -m32 -c -D__VESTOS__ -Iinclude -Iinclude/arch -Iinclude/drivers -Iinclude/kernel \
-         -O2 -g
+         -O2 -g -fno-pic
 
 ASFLAGS = -f elf32
-LDFLAGS = -m elf_i386
+LDFLAGS = -m elf_i386 -T linker.ld
 ARFLAGS = rcs
 
-# 目标文件
-KERNEL_OBJS = kernel/terminal.o \
-              kernel/string.o \
-              kernel/memory.o \
-              kernel/spinlock.o
+# 内核目标文件
+KERNEL_OBJS = kernel.o
 
-DRIVER_OBJS = drivers/tty/vga.o \
-              drivers/tty/keyboard.o \
-              drivers/tty/tty.o
+# TTY系统目标文件
+TTY_KERNEL_OBJS = kernel/terminal.o \
+                  kernel/string.o \
+                  kernel/memory.o \
+                  kernel/spinlock.o
 
-ARCH_OBJS = arch/x86/io.o \
-            arch/x86/interrupt.o
+TTY_DRIVER_OBJS = drivers/tty/vga.o \
+                  drivers/tty/keyboard.o \
+                  drivers/tty/tty.o
 
-LIB_OBJS = lib/tty.o
+TTY_ARCH_OBJS = arch/x86/io.o \
+                arch/x86/interrupt.o
 
-# 所有目标文件
-ALL_OBJS = $(KERNEL_OBJS) $(DRIVER_OBJS) $(ARCH_OBJS) $(LIB_OBJS)
+TTY_LIB_OBJS = lib/tty.o
+
+# 所有TTY目标文件
+TTY_OBJS = $(TTY_KERNEL_OBJS) $(TTY_DRIVER_OBJS) $(TTY_ARCH_OBJS) $(TTY_LIB_OBJS)
 
 # 目标
-TARGETS = libtty.a tty_driver.o kernel_tty.o
+KERNEL_TARGET = kernel.bin
+TTY_TARGETS = libtty.a tty_driver.o kernel_tty.o
 
 # 默认目标
-all: $(TARGETS)
+all: $(KERNEL_TARGET)
+
+# 构建内核
+$(KERNEL_TARGET): $(KERNEL_OBJS) linker.ld
+	@echo "Linking Vest-OS kernel..."
+	$(LD) $(LDFLAGS) -o $@ $(KERNEL_OBJS)
+	@echo "Kernel created: $@"
 
 # 创建TTY驱动库
-libtty.a: $(LIB_OBJS)
+libtty.a: $(TTY_LIB_OBJS)
 	@echo "Creating TTY library..."
 	$(AR) $(ARFLAGS) $@ $^
 	@echo "TTY library created: $@"
 
 # TTY驱动对象文件
-tty_driver.o: $(DRIVER_OBJS) $(ARCH_OBJS)
+tty_driver.o: $(TTY_DRIVER_OBJS) $(TTY_ARCH_OBJS)
 	@echo "Linking TTY driver object..."
-	$(LD) $(LDFLAGS) -r -o $@ $^
+	$(LD) -m elf_i386 -r -o $@ $^
 	@echo "TTY driver object created: $@"
 
 # 内核TTY支持
-kernel_tty.o: $(KERNEL_OBJS) $(DRIVER_OBJS) $(ARCH_OBJS)
+kernel_tty.o: $(TTY_KERNEL_OBJS) $(TTY_DRIVER_OBJS) $(TTY_ARCH_OBJS)
 	@echo "Linking kernel TTY support..."
-	$(LD) $(LDFLAGS) -r -o $@ $^
+	$(LD) -m elf_i386 -r -o $@ $^
 	@echo "Kernel TTY support created: $@"
+
+# TTY系统构建
+tty: $(TTY_TARGETS)
+
+# 构建所有目标
+build-all: $(KERNEL_TARGET) $(TTY_TARGETS)
 
 # 编译规则
 %.o: %.c
@@ -123,24 +142,78 @@ test-build: all
 	@echo "Driver: tty_driver.o"
 	@echo "Kernel: kernel_tty.o"
 
+# QEMU运行
+run: $(KERNEL_TARGET)
+	@echo "Starting QEMU..."
+	@if [ -f "qemu/run.sh" ]; then \
+		chmod +x qemu/run.sh; \
+		./qemu/run.sh; \
+	else \
+		echo "QEMU script not found"; \
+		echo "Please install QEMU: sudo apt-get install qemu-system"; \
+	fi
+
+# QEMU调试
+debug: $(KERNEL_TARGET)
+	@echo "Starting QEMU in debug mode..."
+	@if [ -f "qemu/run.sh" ]; then \
+		chmod +x qemu/run.sh; \
+		./qemu/run.sh -d; \
+	else \
+		echo "QEMU script not found"; \
+	fi
+
+# 创建磁盘镜像
+image: $(KERNEL_TARGET)
+	@echo "Creating disk image..."
+	@if [ -f "scripts/build_image.sh" ]; then \
+		chmod +x scripts/build_image.sh; \
+		./scripts/build_image.sh; \
+	else \
+		echo "Image builder script not found"; \
+	fi
+
+# 测试系统
+test: $(KERNEL_TARGET)
+	@echo "Running Vest-OS tests..."
+	@if [ -f "scripts/build_image.sh" ]; then \
+		chmod +x scripts/build_image.sh; \
+		./scripts/build_image.sh -t; \
+	else \
+		echo "Running basic kernel test in QEMU..."; \
+		$(MAKE) run; \
+	fi
+
 # 显示帮助
 help:
-	@echo "Vest-OS TTY System Makefile"
+	@echo "Vest-OS Build System"
 	@echo ""
 	@echo "Targets:"
-	@echo "  all          - Build all targets"
-	@echo "  libtty.a     - Build TTY library"
-	@echo "  tty_driver.o - Build TTY driver object"
-	@echo "  kernel_tty.o - Build kernel TTY support"
+	@echo "  all          - Build kernel (default)"
+	@echo "  kernel       - Build Vest-OS kernel"
+	@echo "  tty          - Build TTY system components"
+	@echo "  build-all    - Build all components"
+	@echo "  run          - Run kernel in QEMU"
+	@echo "  debug        - Run kernel in QEMU with debug"
+	@echo "  image        - Create bootable disk image"
+	@echo "  test         - Build and test system"
 	@echo "  clean        - Clean build files"
 	@echo "  distclean    - Deep clean"
 	@echo "  install      - Install library"
 	@echo "  install-headers - Install header files"
 	@echo "  install-all  - Complete installation"
-	@echo "  test-build   - Test build"
+	@echo "  test-build   - Test build only"
 	@echo "  help         - Show this help"
 	@echo ""
+	@echo "Examples:"
+	@echo "  make                # Build kernel"
+	@echo "  make run            # Build and run in QEMU"
+	@echo "  make test           # Build and test"
+	@echo "  make tty            # Build TTY system"
+	@echo "  make build-all       # Build everything"
+	@echo ""
 	@echo "Files:"
+	@echo "  Kernel: kernel.c -> kernel.bin"
 	@echo "  TTY Drivers: drivers/tty/"
 	@echo "  VGA Driver:  drivers/tty/vga.c"
 	@echo "  Keyboard:    drivers/tty/keyboard.c"
@@ -150,7 +223,7 @@ help:
 	@echo "  Headers:     include/"
 
 # 声明伪目标
-.PHONY: all clean distclean install install-headers install-all test-build help
+.PHONY: all kernel tty build-all run debug image test clean distclean install install-headers install-all test-build help
 
 # 创建必要的目录结构
 dirs:
